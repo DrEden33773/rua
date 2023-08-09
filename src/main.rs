@@ -13,3 +13,29 @@ fn main() {
   let proto = parse::ParseProto::load(file);
   vm::ExeState::new().execute(&proto);
 }
+
+#[cfg(test)]
+mod simple_test {
+  use super::*;
+
+  fn open_file(path: &str) -> File {
+    File::open(
+      project_root::get_project_root()
+        .expect("no project root found")
+        .to_str()
+        .unwrap()
+        .to_owned()
+        + path,
+    )
+    .unwrap()
+  }
+
+  #[test]
+  fn hello_world() {
+    // project_root/examples/hello_world.rua
+    // get project root via `project_root`
+    let file = open_file("/examples/hello_world.lua");
+    let proto = parse::ParseProto::load(file);
+    vm::ExeState::new().execute(&proto);
+  }
+}

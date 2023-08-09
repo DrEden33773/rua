@@ -8,7 +8,7 @@ impl Lex {
     failed: Token,
   ) -> Token {
     let ch = self.read_char();
-    for (ahead, candidate) in ahead_cases.into_iter().zip(candidates.into_iter()) {
+    for (ahead, candidate) in ahead_cases.into_iter().zip(candidates) {
       if ch == ahead {
         return candidate;
       }
@@ -98,7 +98,7 @@ impl Lex {
     if first == '0' {
       let second = self.read_char();
       if second == 'x' || second == 'X' {
-        todo!()
+        return self.lex_hex();
       }
       self.move_back();
     }
@@ -124,11 +124,12 @@ impl Lex {
     if following.is_alphabetic() || following == '.' {
       panic!("incorrect formatted number");
     }
+    self.move_back();
     // Ok
     Token::Integer(scanned)
   }
 
-  pub(super) fn lex_number_exponent(&mut self, original: f64) -> Token {
+  pub(super) fn lex_number_exponent(&mut self, _original: f64) -> Token {
     unimplemented!("lex number in scientific notation")
   }
 

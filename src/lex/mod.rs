@@ -98,7 +98,7 @@ impl Default for Token {
 pub struct Lex {
   /// source file
   input: File,
-  // the next token
+  /// token which is lexed from input file but shouldn't get returned
   ahead: Token,
 }
 
@@ -129,6 +129,7 @@ impl Lex {
 impl TokenIterator for Lex {
   type Output = Token;
 
+  /// Take out the next token. (with updating `ahead`)
   fn next(&mut self) -> Self::Output {
     if self.ahead == Token::Eos {
       self.do_next()
@@ -137,6 +138,15 @@ impl TokenIterator for Lex {
     }
   }
 
+  /// Observe the next token(emplace).
+  fn peek(&mut self) -> &Self::Output {
+    if self.ahead == Token::Eos {
+      self.ahead = self.do_next();
+    }
+    &self.ahead
+  }
+
+  /// Take out the next token.
   fn do_next(&mut self) -> Self::Output {
     let c = self.read_char();
     match c {
@@ -198,16 +208,10 @@ impl TokenIterator for Lex {
           Token::Dot
         }
       },
+      '0'..='9' => self.lex_number(c),
       'A'..='Z' | 'a'..='z' | '_' => self.lex_name(c),
       '\0' => Token::Eos,
       c => panic!("unexpected char: {}", c),
     }
-  }
-
-  fn peek(&mut self) -> &Self::Output {
-    if self.ahead == Token::Eos {
-      self.ahead = self.do_next();
-    }
-    &self.ahead
   }
 }

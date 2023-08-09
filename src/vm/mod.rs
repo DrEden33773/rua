@@ -24,6 +24,8 @@ pub struct ExeState {
   globals: HashMap<String, Value>,
   /// Stack of values => core component of vm
   stack: Vec<Value>,
+  /// The index of called func (in stack)
+  func_index: usize,
 }
 
 impl ExeState {
@@ -50,18 +52,58 @@ impl ExeState {
             panic!("invalid global key: {:?}", name);
           }
         }
-        ByteCode::LoadConst(dst, index) => {
-          let value = proto.constants[index as usize].to_owned();
-          self.set_stack(dst, value);
+        ByteCode::SetGlobal(name, src) => {
+          let name = proto.constants[name as usize].to_owned();
+          if let Value::String(key) = name {
+            let value = self.stack[src as usize].to_owned();
+            self.globals.insert(key, value);
+          } else {
+            panic!("invalid global key: {:?}", name);
+          }
+        }
+        ByteCode::SetGlobalConst(name, src) => {
+          let name = proto.constants[name as usize].to_owned();
+          if let Value::String(key) = name {
+            let value = proto.constants[src as usize].to_owned();
+            self.globals.insert(key, value);
+          } else {
+            panic!("invalid global key: {:?}", name);
+          }
+        }
+        ByteCode::SetGlobalGlobal(name, src) => {
+          let name = proto.constants[name as usize].to_owned();
+          if let Value::String(key) = name {
+            let src = &proto.constants[src as usize];
+            if let Value::String(src) = src {
+              let value = self.globals.get(src).unwrap_or(&Value::Nil).to_owned();
+              self.globals.insert(key, value);
+            } else {
+              panic!("invalid global key: {:?}", src);
+            }
+          } else {
+            panic!("invalid global key: {:?}", name);
+          }
         }
         ByteCode::Call(func, _) => {
-          let func = &self.stack[func as usize];
+          self.func_index = func as usize;
+          let func = &self.stack[self.func_index];
           if let Value::Function(func) = func {
             func(self);
           } else {
             panic!("invalid function: {:?}", func);
           }
         }
+        ByteCode::Move(dst, src) => {
+          let value = self.stack[src as usize].to_owned();
+          self.set_stack(dst, value);
+        }
+        ByteCode::LoadConst(dst, index) => {
+          let value = proto.constants[index as usize].to_owned();
+          self.set_stack(dst, value);
+        }
+        ByteCode::LoadNil(dst) => self.set_stack(dst, Value::Nil),
+        ByteCode::LoadBool(dst, b) => self.set_stack(dst, Value::Boolean(b)),
+        ByteCode::LoadInt(dst, i_16) => self.set_stack(dst, Value::Integer(i_16 as i64)),
       }
     }
   }
@@ -77,6 +119,7 @@ impl New for ExeState {
     Self {
       globals,
       stack: Vec::new(),
+      func_index: 0,
     }
   }
 }

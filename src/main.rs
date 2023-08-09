@@ -2,6 +2,23 @@ use std::{env::args, fs::File};
 
 use rua::{parse, utils::New, vm};
 
+#[cfg(test)]
+use once_cell::sync::Lazy;
+
+#[cfg(test)]
+static PROJECT_ROOT: Lazy<String> = Lazy::new(|| {
+  project_root::get_project_root()
+    .expect("no project root found")
+    .to_str()
+    .unwrap()
+    .to_owned()
+});
+
+#[cfg(test)]
+fn open_file(path: &str) -> File {
+  File::open(PROJECT_ROOT.to_owned() + path).unwrap()
+}
+
 fn main() {
   let args = args().collect::<Vec<_>>();
   if args.len() != 2 {
@@ -18,22 +35,15 @@ fn main() {
 mod simple_test {
   use super::*;
 
-  fn open_file(path: &str) -> File {
-    File::open(
-      project_root::get_project_root()
-        .expect("no project root found")
-        .to_str()
-        .unwrap()
-        .to_owned()
-        + path,
-    )
-    .unwrap()
-  }
-
   #[test]
   fn hello_world() {
     let file = open_file("/examples/hello_world.lua");
-    let proto = parse::ParseProto::load(file);
-    vm::ExeState::new().execute(&proto);
+    vm::ExeState::new().execute(&parse::ParseProto::load(file));
+  }
+
+  #[test]
+  fn print_single_argument() {
+    let file = open_file("/examples/print_single_arg.lua");
+    vm::ExeState::new().execute(&parse::ParseProto::load(file));
   }
 }

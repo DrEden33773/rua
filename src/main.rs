@@ -32,8 +32,6 @@ mod simple_test {
 
   #[test]
   fn hello_world() {
-    // project_root/examples/hello_world.rua
-    // get project root via `project_root`
     let file = open_file("/examples/hello_world.lua");
     let proto = parse::ParseProto::load(file);
     vm::ExeState::new().execute(&proto);

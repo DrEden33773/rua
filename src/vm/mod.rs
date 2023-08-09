@@ -28,7 +28,12 @@ pub struct ExeState {
 
 impl ExeState {
   fn set_stack(&mut self, dst: u8, value: Value) {
-    self.stack.insert(dst as usize, value);
+    let dst = dst as usize;
+    match dst.cmp(&self.stack.len()) {
+      std::cmp::Ordering::Less => self.stack[dst] = value,
+      std::cmp::Ordering::Equal => self.stack.push(value),
+      std::cmp::Ordering::Greater => panic!("fail in set_stack, for stack is full"),
+    }
   }
 }
 

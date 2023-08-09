@@ -11,6 +11,8 @@
 pub trait TokenIterator {
   type Output;
   fn next(&mut self) -> Self::Output;
+  fn do_next(&mut self) -> Self::Output;
+  fn peek(&mut self) -> &Self::Output;
 }
 
 /// ## New

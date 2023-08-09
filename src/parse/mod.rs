@@ -4,7 +4,7 @@
 //!
 //! ## Goal:
 //!
-//! ByteCode -> AST
+//! TokenStream -> Bytecode
 
 use crate::{
   bytecode::ByteCode,
@@ -41,9 +41,10 @@ impl ParseProto {
 
           if let Token::String(s) = lex.next() {
             constants.push(Value::String(s));
-            bytecodes.push(ByteCode::LoadConst(1, (constants.len() - 1) as u8))
+            bytecodes.push(ByteCode::LoadConst(1, (constants.len() - 1) as u8));
+            bytecodes.push(ByteCode::Call(0, 1));
           } else {
-            panic!("expected `Literal.String`")
+            panic!("expected `Literal.String`");
           }
         }
         /* No new token could be found, end */

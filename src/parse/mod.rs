@@ -212,12 +212,20 @@ impl ParseProto {
     {
       let title = "Disassembler";
       println!("{} {} {}", "=".repeat(8), title, "=".repeat(8));
-      println!("constants: {:?}\n", &proto.constants);
-      println!("bytecodes: [");
-      for c in proto.bytecodes.iter() {
-        println!("    {:?},", c);
+      #[cfg(not(feature = "layered_debug"))]
+      {
+        println!("constants: {:?}\n", &proto.constants);
+        println!("bytecodes: [");
+        for c in proto.bytecodes.iter() {
+          println!("    {:?},", c);
+        }
+        println!("]");
       }
-      println!("]");
+      #[cfg(feature = "layered_debug")]
+      {
+        dbg!(&proto.constants);
+        dbg!(&proto.bytecodes);
+      }
       println!(
         "{}={}={}",
         "=".repeat(8),

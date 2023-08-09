@@ -2,10 +2,12 @@
 //!
 //! Definition of bytecode of rua (vm).
 
+use std::fmt::Debug;
+
 /// ## ByteCode
 ///
 /// ByteCode of rua.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum ByteCode {
   /// ### format
   /// (target stack index, global index)
@@ -37,4 +39,64 @@ pub enum ByteCode {
   /// ### format
   /// (destination index, source index)
   Move(u8, u8),
+}
+
+impl Debug for ByteCode {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let to = "To.Stack.Index: ";
+    let from = "From.Constants.Index: ";
+    let func = "Function.Index: ";
+    let arg = "Function.Arg.Count: ";
+    match self {
+      Self::GetGlobal(arg0, arg1) => f
+        .debug_tuple("GetGlobal")
+        .field(&format!("{to}{arg0}"))
+        .field(&format!("{from}{arg1}"))
+        .finish(),
+      Self::SetGlobal(arg0, arg1) => f
+        .debug_tuple("SetGlobal")
+        .field(&format!("{to}{arg0}"))
+        .field(&format!("{from}{arg1}"))
+        .finish(),
+      Self::SetGlobalConst(arg0, arg1) => f
+        .debug_tuple("SetGlobalConst")
+        .field(&format!("{to}{arg0}"))
+        .field(&format!("{from}{arg1}"))
+        .finish(),
+      Self::SetGlobalGlobal(arg0, arg1) => f
+        .debug_tuple("SetGlobalGlobal")
+        .field(&format!("{to}{arg0}"))
+        .field(&format!("{from}{arg1}"))
+        .finish(),
+      Self::LoadConst(arg0, arg1) => f
+        .debug_tuple("LoadConst")
+        .field(&format!("{to}{arg0}"))
+        .field(&format!("{from}{arg1}"))
+        .finish(),
+      Self::LoadNil(arg0) => f
+        .debug_tuple("LoadNil")
+        .field(&format!("{to}{arg0}"))
+        .finish(),
+      Self::LoadBool(arg0, arg1) => f
+        .debug_tuple("LoadBool")
+        .field(&format!("{to}{arg0}"))
+        .field(&format!("{from}{arg1}"))
+        .finish(),
+      Self::LoadInt(arg0, arg1) => f
+        .debug_tuple("LoadInt")
+        .field(&format!("{to}{arg0}"))
+        .field(&format!("{from}{arg1}"))
+        .finish(),
+      Self::Call(arg0, arg1) => f
+        .debug_tuple("Call")
+        .field(&format!("{func}{arg0}"))
+        .field(&format!("{arg}{arg1}"))
+        .finish(),
+      Self::Move(arg0, arg1) => f
+        .debug_tuple("Move")
+        .field(&format!("{to}{arg0}"))
+        .field(&format!("{from}{arg1}"))
+        .finish(),
+    }
+  }
 }

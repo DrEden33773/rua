@@ -27,6 +27,12 @@ pub struct ExeState {
 }
 
 impl ExeState {
+  fn set_stack(&mut self, dst: u8, value: Value) {
+    self.stack.insert(dst as usize, value);
+  }
+}
+
+impl ExeState {
   pub fn execute(&mut self, proto: &ParseProto) {
     for code in proto.bytecodes.iter() {
       match *code {
@@ -34,14 +40,14 @@ impl ExeState {
           let name = &proto.constants[name as usize];
           if let Value::String(key) = name {
             let value = self.globals.get(key).unwrap_or(&Value::Nil).to_owned();
-            self.stack.insert(dst as usize, value);
+            self.set_stack(dst, value);
           } else {
             panic!("invalid global key: {:?}", name);
           }
         }
         ByteCode::LoadConst(dst, index) => {
           let value = proto.constants[index as usize].to_owned();
-          self.stack.insert(dst as usize, value);
+          self.set_stack(dst, value);
         }
         ByteCode::Call(func, _) => {
           let func = &self.stack[func as usize];

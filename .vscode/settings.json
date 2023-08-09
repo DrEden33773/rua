@@ -1,0 +1,15 @@
+{
+  "cSpell.words": [
+    "bytecodes",
+    "eturn",
+    "falsey",
+    "hile",
+    "Proto",
+    "rint",
+    "rlox",
+    "unsync",
+    "uper"
+  ],
+  "rust-analyzer.check.command": "clippy",
+  "editor.tabSize": 2
+}

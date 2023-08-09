@@ -1,0 +1,7 @@
+print(1e1)
+print(1e-1)
+print(1e-2)
+print(1e+4)
+print(1e5)
+print(0.111e5)
+print(1111.1e-4)

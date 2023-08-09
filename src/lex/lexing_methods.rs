@@ -89,20 +89,43 @@ impl Lex {
     }
   }
 
-  pub(super) fn lex_hex(&mut self) -> Token {
-    unimplemented!("lex hex")
+  fn lex_number_in_radix(&mut self, radix: u32) -> Token {
+    let mut scanned = 0;
+    loop {
+      let c = self.read_char();
+      let curr = char::to_digit(c, radix);
+      match curr {
+        Some(curr) => scanned = scanned * radix as i64 + curr as i64,
+        None => match c {
+          '.' => return self.lex_number_fraction_in_radix(scanned, radix),
+          _ => {
+            self.move_back();
+            break;
+          }
+        },
+      }
+    }
+    // check following
+    let following = self.read_char();
+    if following.is_alphabetic() || following == '.' {
+      panic!("malformed number");
+    }
+    self.move_back();
+    // Ok
+    Token::Integer(scanned)
   }
 
   pub(super) fn lex_number(&mut self, first: char) -> Token {
-    /* HEX */
     if first == '0' {
       let second = self.read_char();
-      if second == 'x' || second == 'X' {
-        return self.lex_hex();
+      match second {
+        'x' | 'X' => return self.lex_number_in_radix(16),
+        'b' | 'B' => return self.lex_number_in_radix(2),
+        'o' | 'O' => return self.lex_number_in_radix(8),
+        _ => {}
       }
       self.move_back();
     }
-    /* DEC */
     let mut scanned = char::to_digit(first, 10).unwrap() as i64;
     loop {
       let c = self.read_char();
@@ -122,15 +145,50 @@ impl Lex {
     // check following
     let following = self.read_char();
     if following.is_alphabetic() || following == '.' {
-      panic!("incorrect formatted number");
+      panic!("malformed number");
     }
     self.move_back();
     // Ok
     Token::Integer(scanned)
   }
 
-  pub(super) fn lex_number_exponent(&mut self, _original: f64) -> Token {
-    unimplemented!("lex number in scientific notation")
+  pub(super) fn lex_number_exponent(&mut self, original: f64) -> Token {
+    let first = self.read_char();
+    let mut scanned = 0;
+    let mut sign = 1;
+    match first {
+      '+' => {}
+      '-' => sign = -1,
+      _ => scanned = char::to_digit(first, 10).unwrap() as i64,
+    }
+    loop {
+      let c = self.read_char();
+      let curr = char::to_digit(c, 10);
+      if let Some(curr) = curr {
+        scanned = scanned * 10 + curr as i64
+      } else {
+        self.move_back();
+        break;
+      }
+    }
+    Token::Float(original * 10f64.powi(scanned as i32 * sign))
+  }
+
+  fn lex_number_fraction_in_radix(&mut self, original: i64, radix: u32) -> Token {
+    let mut scanned = 0;
+    let mut bits = 1.0;
+    loop {
+      let c = self.read_char();
+      let curr = char::to_digit(c, radix);
+      if let Some(curr) = curr {
+        scanned = scanned * radix as i64 + curr as i64;
+        bits *= radix as f64;
+      } else {
+        self.move_back();
+        break;
+      }
+    }
+    Token::Float(original as f64 + scanned as f64 / bits)
   }
 
   pub(super) fn lex_number_fraction(&mut self, original: i64) -> Token {
@@ -138,12 +196,18 @@ impl Lex {
     let mut bits = 1.0;
     loop {
       let c = self.read_char();
-      if let Some(curr) = char::to_digit(c, 10) {
-        scanned = scanned * 10 + curr as i64;
-        bits *= 10.0;
-      } else {
-        self.move_back();
-        break;
+      match char::to_digit(c, 10) {
+        Some(curr) => {
+          scanned = scanned * 10 + curr as i64;
+          bits *= 10.0;
+        }
+        None => match c {
+          'e' | 'E' => return self.lex_number_exponent(original as f64 + scanned as f64 / bits),
+          _ => {
+            self.move_back();
+            break;
+          }
+        },
       }
     }
     Token::Float(original as f64 + scanned as f64 / bits)

@@ -46,4 +46,10 @@ mod simple_test {
     let file = open_file("/examples/print_single_arg.lua");
     vm::ExeState::new().execute(&parse::ParseProto::load(file));
   }
+
+  #[test]
+  fn scientific_notation() {
+    let file = open_file("/examples/scientific_notation.lua");
+    vm::ExeState::new().execute(&parse::ParseProto::load(file));
+  }
 }

@@ -16,7 +16,7 @@ use crate::utils::TokenIterator;
 
 pub mod lexing_methods;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
   /* keywords */
   And,
@@ -81,7 +81,7 @@ pub enum Token {
   /* constant values */
   Integer(i64),
   Float(f64),
-  String(String),
+  String(Vec<u8>),
   /* name of vars or table_keys */
   Name(String),
   /* end */
@@ -112,24 +112,24 @@ impl<R: Read> Lex<R> {
 }
 
 impl<R: Read> Lex<R> {
-  fn read_char(&mut self) -> char {
+  fn read_byte(&mut self) -> u8 {
     match self.input.next() {
-      Some(Ok(c)) => c as char,
+      Some(Ok(c)) => c,
       Some(_) => panic!("lex read error"),
-      None => '\0',
+      None => b'\0',
     }
   }
 
-  fn peek_char(&mut self) -> char {
+  fn peek_byte(&mut self) -> u8 {
     match self.input.peek() {
-      Some(Ok(next)) => *next as char,
+      Some(Ok(next)) => *next,
       Some(_) => panic!("lex read error"),
-      None => '\0',
+      None => b'\0',
     }
   }
 
-  fn next_char(&mut self) -> Option<char> {
-    self.input.next().map(|r| r.unwrap().into())
+  fn next_byte(&mut self) -> Option<u8> {
+    self.input.next().map(|r| r.unwrap())
   }
 }
 
@@ -155,65 +155,67 @@ impl<R: Read> TokenIterator for Lex<R> {
 
   /// Take out the next token.
   fn do_next(&mut self) -> Self::Output {
-    let c = self.read_char();
-    match c {
-      ' ' | '\r' | '\n' | '\t' => self.do_next(),
-      '+' => Token::Add,
-      '*' => Token::Mul,
-      '%' => Token::Mod,
-      '^' => Token::Pow,
-      '#' => Token::Len,
-      '&' => Token::BitAnd,
-      '|' => Token::BitOr,
-      '(' => Token::ParL,
-      ')' => Token::ParR,
-      '{' => Token::CurlyL,
-      '}' => Token::CurlyR,
-      '[' => Token::SqurL,
-      ']' => Token::SqurR,
-      ';' => Token::SemiColon,
-      ',' => Token::Comma,
-      '/' => self.check_ahead(vec!['/'], vec![Token::Idiv], Token::Div),
-      '=' => self.check_ahead(vec!['='], vec![Token::Equal], Token::Assign),
-      '~' => self.check_ahead(vec!['='], vec![Token::NotEq], Token::BitXor),
-      ':' => self.check_ahead(vec![':'], vec![Token::DoubColon], Token::Colon),
-      '<' => self.check_ahead(
-        vec!['=', '<'],
-        vec![Token::LesEq, Token::ShiftL],
-        Token::Less,
-      ),
-      '>' => self.check_ahead(
-        vec!['=', '>'],
-        vec![Token::GreEq, Token::ShiftR],
-        Token::Less,
-      ),
-      '-' => {
-        if self.peek_char() == '-' {
-          self.next_char();
-          self.lex_comment();
-          self.do_next()
-        } else {
-          Token::Sub
-        }
-      }
-      '\'' | '"' => self.lex_string(c),
-      '.' => match self.peek_char() {
-        '.' => {
-          self.next_char();
-          if self.peek_char() == '.' {
-            self.next_char();
-            Token::Dots
+    if let Some(c) = self.next_byte() {
+      match c {
+        b' ' | b'\r' | b'\n' | b'\t' => self.do_next(),
+        b'+' => Token::Add,
+        b'*' => Token::Mul,
+        b'%' => Token::Mod,
+        b'^' => Token::Pow,
+        b'#' => Token::Len,
+        b'&' => Token::BitAnd,
+        b'|' => Token::BitOr,
+        b'(' => Token::ParL,
+        b')' => Token::ParR,
+        b'{' => Token::CurlyL,
+        b'}' => Token::CurlyR,
+        b'[' => Token::SqurL,
+        b']' => Token::SqurR,
+        b';' => Token::SemiColon,
+        b',' => Token::Comma,
+        b'/' => self.check_ahead(vec![b'/'], vec![Token::Idiv], Token::Div),
+        b'=' => self.check_ahead(vec![b'='], vec![Token::Equal], Token::Assign),
+        b'~' => self.check_ahead(vec![b'='], vec![Token::NotEq], Token::BitXor),
+        b':' => self.check_ahead(vec![b':'], vec![Token::DoubColon], Token::Colon),
+        b'<' => self.check_ahead(
+          vec![b'=', b'<'],
+          vec![Token::LesEq, Token::ShiftL],
+          Token::Less,
+        ),
+        b'>' => self.check_ahead(
+          vec![b'=', b'>'],
+          vec![Token::GreEq, Token::ShiftR],
+          Token::Less,
+        ),
+        b'-' => {
+          if self.peek_byte() == b'-' {
+            self.next_byte();
+            self.lex_comment();
+            self.do_next()
           } else {
-            Token::Concat
+            Token::Sub
           }
         }
-        '0'..='9' => self.lex_number_fraction(0),
-        _ => Token::Dot,
-      },
-      '0'..='9' => self.lex_number(c),
-      'A'..='Z' | 'a'..='z' | '_' => self.lex_name(c),
-      '\0' => Token::Eos,
-      c => panic!("unexpected char: {}", c),
+        b'\'' | b'"' => self.lex_string(c),
+        b'.' => match self.peek_byte() {
+          b'.' => {
+            self.next_byte();
+            if self.peek_byte() == b'.' {
+              self.next_byte();
+              Token::Dots
+            } else {
+              Token::Concat
+            }
+          }
+          b'0'..=b'9' => self.lex_number_fraction(0),
+          _ => Token::Dot,
+        },
+        b'0'..=b'9' => self.lex_number(c),
+        b'A'..=b'Z' | b'a'..=b'z' | b'_' => self.lex_name(c),
+        _ => panic!("unexpected char: {}", c),
+      }
+    } else {
+      Token::Eos
     }
   }
 }

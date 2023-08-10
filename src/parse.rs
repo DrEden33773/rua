@@ -14,6 +14,8 @@ use crate::{
 };
 use std::{io::Read, vec};
 
+pub mod exp_desc;
+
 /// ## ParseProto
 ///
 /// A struct that contains all the information of a proto.
@@ -29,6 +31,8 @@ pub struct ParseProto<R: Read> {
   locals: Vec<String>,
   /// Lexing Machine
   lexer: Lex<R>,
+  /// Stack pointer
+  sp: usize,
 }
 
 impl<R: Read> ParseProto<R> {
@@ -38,6 +42,7 @@ impl<R: Read> ParseProto<R> {
       bytecodes: vec![],
       locals: vec![],
       lexer: Lex::new(input),
+      sp: 0,
     }
   }
 }
@@ -64,7 +69,7 @@ impl<R: Read> ParseProto<R> {
     ByteCode::LoadConst(dst as u8, self.add_const(c) as u8)
   }
 
-  pub fn load_expression(&mut self, dst: usize) {
+  pub fn load_exp(&mut self, dst: usize) {
     let code = match self.lexer.next() {
       Token::Nil => ByteCode::LoadNil(dst as u8),
       Token::True => ByteCode::LoadBool(dst as u8, true),
@@ -117,7 +122,7 @@ impl<R: Read> ParseProto<R> {
       // '('
       Token::ParL => {
         // expression
-        self.load_expression(arg_index);
+        self.load_exp(arg_index);
         // ')'
         if self.lexer.next() != Token::ParR {
           panic!("expected `)`");
@@ -146,7 +151,7 @@ impl<R: Read> ParseProto<R> {
       panic!("expected `=` after variable_name")
     }
 
-    self.load_expression(self.locals.len());
+    self.load_exp(self.locals.len());
 
     // add to locals after load_expression
     self.locals.push(var);
@@ -159,7 +164,7 @@ impl<R: Read> ParseProto<R> {
     // expression
     if let Some(dst) = self.get_local(&l_var) {
       // l_var := local var
-      self.load_expression(dst);
+      self.load_exp(dst);
     } else {
       // l_var := global var
       let dst = self.add_const(l_var) as u8;

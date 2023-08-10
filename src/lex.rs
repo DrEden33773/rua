@@ -112,6 +112,10 @@ impl<R: Read> Lex<R> {
 }
 
 impl<R: Read> Lex<R> {
+  pub fn expect(&mut self, t: Token) {
+    assert_eq!(self.next(), t);
+  }
+
   fn read_byte(&mut self) -> u8 {
     match self.input.next() {
       Some(Ok(c)) => c,

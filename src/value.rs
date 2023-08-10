@@ -2,9 +2,15 @@
 //!
 //! Definition of `Value` type of rua.
 
-use crate::vm::ExeState;
+use crate::{table::Table, vm::ExeState};
 use core::fmt;
-use std::{fmt::Debug, hash::Hash, rc::Rc, str};
+use std::{
+  cell::RefCell,
+  fmt::{Debug, Display},
+  hash::Hash,
+  rc::Rc,
+  str,
+};
 
 /// sizeof(Value) - 1(tag) - 1(len)
 const SHORT_STR_MAX: usize = 16 - 1 - 1;
@@ -38,6 +44,7 @@ pub enum Value {
   MidStr(Rc<(u8, [u8; MID_STR_MAX])>),
   LongStr(Rc<Vec<u8>>),
   Function(fn(&mut ExeState) -> i32),
+  Table(Rc<RefCell<Table>>),
 }
 
 impl Hash for Value {
@@ -54,6 +61,7 @@ impl Hash for Value {
       Value::MidStr(s) => s.1[..s.0 as usize].hash(state),
       Value::LongStr(s) => s.hash(state),
       Value::Function(f) => (*f as *const usize).hash(state),
+      Value::Table(t) => Rc::as_ptr(t).hash(state),
     }
   }
 }
@@ -129,21 +137,24 @@ impl From<fn(&mut ExeState) -> i32> for Value {
 impl PartialEq for Value {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
+      (Value::Nil, Value::Nil) => true,
       (Self::Boolean(l0), Self::Boolean(r0)) => *l0 == *r0,
       (Self::Integer(l0), Self::Integer(r0)) => *l0 == *r0,
       (Self::Float(l0), Self::Float(r0)) => *l0 == *r0,
-      (Self::Function(l0), Self::Function(r0)) => std::ptr::eq(l0, r0),
-      // (Self::String(l0), Self::String(r0)) => *l0 == *r0,
       (Self::ShortStr(len0, s0), Self::ShortStr(len1, s1)) => {
         s0[..*len0 as usize] == s1[..*len1 as usize]
       }
       (Self::MidStr(s0), Self::MidStr(s1)) => s0.1[..s0.0 as usize] == s1.1[..s1.0 as usize],
       (Self::LongStr(s0), Self::LongStr(s1)) => *s0 == *s1,
-      (Value::Nil, Value::Nil) => true,
+      (Self::Function(l0), Self::Function(r0)) => std::ptr::eq(l0, r0),
+      // TODO: detailed logic of comparing two `Table` objects
+      (Self::Table(l0), Self::Table(r0)) => std::ptr::eq(l0, r0),
       _ => false,
     }
   }
 }
+
+impl Eq for Value {}
 
 impl Debug for Value {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -166,6 +177,19 @@ impl Debug for Value {
       ),
       Value::LongStr(s) => write!(f, "'{s}'", s = String::from_utf8_lossy(&s[..])),
       Value::Function(_) => write!(f, "<function>"),
+      Value::Table(t) => {
+        let t = t.borrow();
+        write!(f, "{}", t)
+      }
+    }
+  }
+}
+
+impl Display for Value {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Value::Table(t) => write!(f, "{}", t.borrow()),
+      _ => write!(f, "{:?}", self),
     }
   }
 }

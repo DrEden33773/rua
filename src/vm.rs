@@ -8,8 +8,8 @@
 //!
 //! But in rua, we use a `stack-based` vm instead.
 
-use crate::{bytecode::ByteCode, parse::ParseProto, utils::New, value::Value};
-use std::{collections::HashMap, io::Read};
+use crate::{bytecode::ByteCode, parse::ParseProto, table::Table, utils::New, value::Value};
+use std::{cell::RefCell, collections::HashMap, io::Read, rc::Rc};
 
 pub mod lib;
 
@@ -80,6 +80,40 @@ impl ExeState {
         ByteCode::LoadNil(dst) => self.set_stack(dst, Value::Nil),
         ByteCode::LoadBool(dst, b) => self.set_stack(dst, Value::Boolean(b)),
         ByteCode::LoadInt(dst, i_16) => self.set_stack(dst, Value::Integer(i_16 as i64)),
+        ByteCode::NewTable(dst, array_size, map_size) => {
+          let table = Table::new(array_size as usize, map_size as usize);
+          self.set_stack(dst, Value::Table(Rc::new(RefCell::new(table))));
+        }
+        ByteCode::SetTable(table, k, v) => {
+          // key is a variable
+          let k = self.stack[k as usize].clone();
+          let v = self.stack[v as usize].clone();
+          if let Value::Table(table) = &self.stack[table as usize] {
+            table.borrow_mut().map.insert(k, v);
+          } else {
+            panic!("not table");
+          }
+        }
+        ByteCode::SetField(table, k, v) => {
+          // key is a constant
+          let k = proto.constants[k as usize].clone();
+          let v = self.stack[v as usize].clone();
+          if let Value::Table(table) = &self.stack[table as usize] {
+            table.borrow_mut().map.insert(k, v);
+          } else {
+            panic!("not table");
+          }
+        }
+        ByteCode::SetList(table, n) => {
+          let value_index = table as usize + 1;
+          if let Value::Table(table) = self.stack[table as usize].clone() {
+            // `drain + extend` could be much better than `for + push`
+            let values = self.stack.drain(value_index..value_index + n as usize);
+            table.borrow_mut().array.extend(values);
+          } else {
+            panic!("not table");
+          }
+        }
       }
     }
   }

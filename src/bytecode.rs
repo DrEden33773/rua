@@ -39,60 +39,102 @@ pub enum ByteCode {
   /// ### format
   /// (destination index, source index)
   Move(u8, u8),
+  /// ### format
+  /// (table.index, table.array.len, table.hash_map.len)
+  NewTable(u8, u8, u8),
+  /// ### format
+  /// (table.index, key<on_stack>.index, value.index)
+  SetTable(u8, u8, u8),
+  /// ### format
+  /// (table.index, key<literal>.index, value.index)
+  SetField(u8, u8, u8),
+  /// ### format
+  /// (table.index, item.count)
+  SetList(u8, u8),
 }
 
 impl Debug for ByteCode {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let to = "To.Stack.Index";
-    let from = "From.Constants.Index";
-    let func = "Func.Index";
-    let arg = "Func.Arg.Count";
+    const TO: &str = "To.Stack.Index";
+    const FROM: &str = "From.Constants.Index";
+    const FUNC: &str = "Func.Index";
+    const ARG: &str = "Func.Arg.Count";
+    const TABLE: &str = "Table.Index";
+    const NARRAY: &str = "Table.Array.Len";
+    const NMAP: &str = "Table.Map.Len";
+    const CKEY: &str = "Key<Constants>.Index";
+    const VKEY: &str = "Key<Stack>.Index";
+    const VALUE: &str = "Value.Index";
+    const ITEM: &str = "Inserted.Item.Count";
     match self {
       Self::GetGlobal(arg0, arg1) => f
         .debug_struct("GetGlobal")
-        .field(to, arg0)
-        .field(from, arg1)
+        .field(TO, arg0)
+        .field(FROM, arg1)
         .finish(),
       Self::SetGlobal(arg0, arg1) => f
         .debug_struct("SetGlobal")
-        .field(to, arg0)
-        .field(from, arg1)
+        .field(TO, arg0)
+        .field(FROM, arg1)
         .finish(),
       Self::SetGlobalConst(arg0, arg1) => f
         .debug_struct("SetGlobalConst")
-        .field(to, arg0)
-        .field(from, arg1)
+        .field(TO, arg0)
+        .field(FROM, arg1)
         .finish(),
       Self::SetGlobalGlobal(arg0, arg1) => f
         .debug_struct("SetGlobalGlobal")
-        .field(to, arg0)
-        .field(from, arg1)
+        .field(TO, arg0)
+        .field(FROM, arg1)
         .finish(),
       Self::LoadConst(arg0, arg1) => f
         .debug_struct("LoadConst")
-        .field(to, arg0)
-        .field(from, arg1)
+        .field(TO, arg0)
+        .field(FROM, arg1)
         .finish(),
-      Self::LoadNil(arg0) => f.debug_struct("LoadNil").field(to, arg0).finish(),
+      Self::LoadNil(arg0) => f.debug_struct("LoadNil").field(TO, arg0).finish(),
       Self::LoadBool(arg0, arg1) => f
         .debug_struct("LoadBool")
-        .field(to, arg0)
-        .field(from, arg1)
+        .field(TO, arg0)
+        .field(FROM, arg1)
         .finish(),
       Self::LoadInt(arg0, arg1) => f
         .debug_struct("LoadInt")
-        .field(to, arg0)
-        .field(from, arg1)
+        .field(TO, arg0)
+        .field(FROM, arg1)
         .finish(),
       Self::Call(arg0, arg1) => f
         .debug_struct("Call")
-        .field(func, arg0)
-        .field(arg, arg1)
+        .field(FUNC, arg0)
+        .field(ARG, arg1)
         .finish(),
       Self::Move(arg0, arg1) => f
         .debug_struct("Move")
-        .field(to, arg0)
-        .field(from, arg1)
+        .field(TO, arg0)
+        .field(FROM, arg1)
+        .finish(),
+      Self::NewTable(arg0, arg1, arg2) => f
+        .debug_struct("NewTable")
+        .field(TABLE, arg0)
+        .field(NARRAY, arg1)
+        .field(NMAP, arg2)
+        .finish(),
+      Self::SetTable(arg0, arg1, arg2) => f
+        .debug_struct("SetTable")
+        .field(TABLE, arg0)
+        .field(VKEY, arg1)
+        .field(VALUE, arg2)
+        .finish(),
+      Self::SetField(arg0, arg1, arg2) => f
+        .debug_struct("SetField")
+        .field(TABLE, arg0)
+        .field(CKEY, arg1)
+        .field(VALUE, arg2)
+        .finish(),
+      Self::SetList(arg0, arg1) => f
+        .debug_struct("SetList")
+        .field(TABLE, arg0)
+        .field(ITEM, arg1)
         .finish(),
     }
   }

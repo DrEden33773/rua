@@ -4,7 +4,12 @@
 
 use crate::vm::ExeState;
 use core::fmt;
-use std::fmt::Debug;
+use std::{fmt::Debug, rc::Rc};
+
+/// sizeof(Value) - 1(tag) - 1(len)
+const SHORT_STR_MAX: usize = 16 - 1 - 1;
+/// 64 - sizeof(value)
+const MID_STR_MAX: usize = 48 - 1;
 
 #[derive(Clone)]
 pub enum Value {
@@ -13,6 +18,9 @@ pub enum Value {
   Integer(i64),
   Float(f64),
   String(String),
+  // ShortStr(u8, [u8; SHORT_STR_MAX]),
+  // MidStr(Rc<(u8, [u8; MID_STR_MAX])>),
+  // LongStr(Rc<Vec<u8>>),
   Function(fn(&mut ExeState) -> i32),
 }
 

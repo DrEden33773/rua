@@ -43,59 +43,56 @@ pub enum ByteCode {
 
 impl Debug for ByteCode {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let to = "To.Stack.Index: ";
-    let from = "From.Constants.Index: ";
-    let func = "Function.Index: ";
-    let arg = "Function.Arg.Count: ";
+    let to = "To.Stack.Index";
+    let from = "From.Constants.Index";
+    let func = "Func.Index";
+    let arg = "Func.Arg.Count";
     match self {
       Self::GetGlobal(arg0, arg1) => f
-        .debug_tuple("GetGlobal")
-        .field(&format!("{to}{arg0}"))
-        .field(&format!("{from}{arg1}"))
+        .debug_struct("GetGlobal")
+        .field(to, arg0)
+        .field(from, arg1)
         .finish(),
       Self::SetGlobal(arg0, arg1) => f
-        .debug_tuple("SetGlobal")
-        .field(&format!("{to}{arg0}"))
-        .field(&format!("{from}{arg1}"))
+        .debug_struct("SetGlobal")
+        .field(to, arg0)
+        .field(from, arg1)
         .finish(),
       Self::SetGlobalConst(arg0, arg1) => f
-        .debug_tuple("SetGlobalConst")
-        .field(&format!("{to}{arg0}"))
-        .field(&format!("{from}{arg1}"))
+        .debug_struct("SetGlobalConst")
+        .field(to, arg0)
+        .field(from, arg1)
         .finish(),
       Self::SetGlobalGlobal(arg0, arg1) => f
-        .debug_tuple("SetGlobalGlobal")
-        .field(&format!("{to}{arg0}"))
-        .field(&format!("{from}{arg1}"))
+        .debug_struct("SetGlobalGlobal")
+        .field(to, arg0)
+        .field(from, arg1)
         .finish(),
       Self::LoadConst(arg0, arg1) => f
-        .debug_tuple("LoadConst")
-        .field(&format!("{to}{arg0}"))
-        .field(&format!("{from}{arg1}"))
+        .debug_struct("LoadConst")
+        .field(to, arg0)
+        .field(from, arg1)
         .finish(),
-      Self::LoadNil(arg0) => f
-        .debug_tuple("LoadNil")
-        .field(&format!("{to}{arg0}"))
-        .finish(),
+      Self::LoadNil(arg0) => f.debug_struct("LoadNil").field(to, arg0).finish(),
       Self::LoadBool(arg0, arg1) => f
-        .debug_tuple("LoadBool")
-        .field(&format!("{to}{arg0}"))
-        .field(&format!("{from}{arg1}"))
+        .debug_struct("LoadBool")
+        .field(to, arg0)
+        .field(from, arg1)
         .finish(),
       Self::LoadInt(arg0, arg1) => f
-        .debug_tuple("LoadInt")
-        .field(&format!("{to}{arg0}"))
-        .field(&format!("{from}{arg1}"))
+        .debug_struct("LoadInt")
+        .field(to, arg0)
+        .field(from, arg1)
         .finish(),
       Self::Call(arg0, arg1) => f
-        .debug_tuple("Call")
-        .field(&format!("{func}{arg0}"))
-        .field(&format!("{arg}{arg1}"))
+        .debug_struct("Call")
+        .field(func, arg0)
+        .field(arg, arg1)
         .finish(),
       Self::Move(arg0, arg1) => f
-        .debug_tuple("Move")
-        .field(&format!("{to}{arg0}"))
-        .field(&format!("{from}{arg1}"))
+        .debug_struct("Move")
+        .field(to, arg0)
+        .field(from, arg1)
         .finish(),
     }
   }

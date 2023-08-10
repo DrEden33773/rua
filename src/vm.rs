@@ -40,45 +40,25 @@ impl ExeState {
     for code in proto.bytecodes.iter() {
       match *code {
         ByteCode::GetGlobal(dst, name) => {
-          let name = &proto.constants[name as usize];
-          if let Value::String(key) = name {
-            let value = self.globals.get(key).unwrap_or(&Value::Nil).to_owned();
-            self.set_stack(dst, value);
-          } else {
-            panic!("invalid global key: {:?}", name);
-          }
+          let name: &str = (&proto.constants[name as usize]).into();
+          let value = self.globals.get(name).unwrap_or(&Value::Nil).to_owned();
+          self.set_stack(dst, value);
         }
         ByteCode::SetGlobal(name, src) => {
-          let name = proto.constants[name as usize].to_owned();
-          if let Value::String(key) = name {
-            let value = self.stack[src as usize].to_owned();
-            self.globals.insert(key, value);
-          } else {
-            panic!("invalid global key: {:?}", name);
-          }
+          let name = &proto.constants[name as usize];
+          let value = self.stack[src as usize].to_owned();
+          self.globals.insert(name.into(), value);
         }
         ByteCode::SetGlobalConst(name, src) => {
-          let name = proto.constants[name as usize].to_owned();
-          if let Value::String(key) = name {
-            let value = proto.constants[src as usize].to_owned();
-            self.globals.insert(key, value);
-          } else {
-            panic!("invalid global key: {:?}", name);
-          }
+          let name = &proto.constants[name as usize];
+          let value = proto.constants[src as usize].to_owned();
+          self.globals.insert(name.into(), value);
         }
         ByteCode::SetGlobalGlobal(name, src) => {
-          let name = proto.constants[name as usize].to_owned();
-          if let Value::String(key) = name {
-            let src = &proto.constants[src as usize];
-            if let Value::String(src) = src {
-              let value = self.globals.get(src).unwrap_or(&Value::Nil).to_owned();
-              self.globals.insert(key, value);
-            } else {
-              panic!("invalid global key: {:?}", src);
-            }
-          } else {
-            panic!("invalid global key: {:?}", name);
-          }
+          let name = &proto.constants[name as usize];
+          let src: &str = (&proto.constants[src as usize]).into();
+          let value = self.globals.get(src).unwrap_or(&Value::Nil).to_owned();
+          self.globals.insert(name.into(), value);
         }
         ByteCode::Call(func, _) => {
           self.func_index = func as usize;

@@ -2,23 +2,6 @@ use std::{env::args, fs::File};
 
 use rua::{parse, utils::New, vm};
 
-#[cfg(test)]
-use once_cell::sync::Lazy;
-
-#[cfg(test)]
-static PROJECT_ROOT: Lazy<String> = Lazy::new(|| {
-  project_root::get_project_root()
-    .expect("no project root found")
-    .to_str()
-    .unwrap()
-    .to_owned()
-});
-
-#[cfg(test)]
-fn open_file(path: &str) -> File {
-  File::open(PROJECT_ROOT.to_owned() + path).unwrap()
-}
-
 fn main() {
   let args = args().collect::<Vec<_>>();
   if args.len() != 2 {
@@ -34,6 +17,19 @@ fn main() {
 #[cfg(test)]
 mod simple_test {
   use super::*;
+  use once_cell::sync::Lazy;
+
+  static PROJECT_ROOT: Lazy<String> = Lazy::new(|| {
+    project_root::get_project_root()
+      .expect("no project root found")
+      .to_str()
+      .unwrap()
+      .to_owned()
+  });
+
+  fn open_file(path: &str) -> File {
+    File::open(PROJECT_ROOT.to_owned() + path).unwrap()
+  }
 
   #[test]
   fn hello_world() {

@@ -12,15 +12,15 @@ use crate::{
   utils::TokenIterator,
   value::Value,
 };
-use std::{fs::File, vec};
+use std::{io::Read, vec};
 
 /// ## ParseProto
 ///
 /// A struct that contains all the information of a proto.
 ///
-/// Proto <=> Instructions + Constants (Intermediate)
+/// Proto <=> Instructions + Constants + locals (Intermediate)
 #[derive(Debug)]
-pub struct ParseProto {
+pub struct ParseProto<R: Read> {
   /// Constants vec
   pub constants: Vec<Value>,
   /// Bytecodes/Instructions vec
@@ -28,11 +28,11 @@ pub struct ParseProto {
   /// Local variable pool
   locals: Vec<String>,
   /// Lexing Machine
-  lexer: Lex,
+  lexer: Lex<R>,
 }
 
-impl ParseProto {
-  pub fn new(input: File) -> Self {
+impl<R: Read> ParseProto<R> {
+  pub fn new(input: R) -> Self {
     Self {
       constants: vec![],
       bytecodes: vec![],
@@ -42,7 +42,7 @@ impl ParseProto {
   }
 }
 
-impl ParseProto {
+impl<R: Read> ParseProto<R> {
   /// Add a constant into const_table only if the table doesn't contains it.
   ///
   /// Return the index.
@@ -102,7 +102,7 @@ impl ParseProto {
   }
 }
 
-impl ParseProto {
+impl<R: Read> ParseProto<R> {
   /// FuncName(expression) / FuncName LiteralString
   fn function_call(&mut self, name: String) {
     let func_index = self.locals.len();
@@ -204,7 +204,7 @@ impl ParseProto {
     }
   }
 
-  pub fn load(input: File) -> Self {
+  pub fn load(input: R) -> Self {
     let mut proto = Self::new(input);
 
     proto.chunk();

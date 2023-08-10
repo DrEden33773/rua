@@ -7,8 +7,8 @@
 //! Input -> TokenStream
 
 use std::{
-  fs::File,
-  io::{Read, Seek, SeekFrom},
+  io::{Bytes, Read},
+  iter::Peekable,
   mem,
 };
 
@@ -95,38 +95,45 @@ impl Default for Token {
 }
 
 #[derive(Debug)]
-pub struct Lex {
+pub struct Lex<R: Read> {
   /// source file
-  input: File,
+  input: Peekable<Bytes<R>>,
   /// token which is lexed from input file but shouldn't get returned
   ahead: Token,
 }
 
-impl Lex {
-  pub fn new(input: File) -> Self {
+impl<R: Read> Lex<R> {
+  pub fn new(input: R) -> Self {
     Self {
-      input,
+      input: input.bytes().peekable(),
       ahead: Token::Eos,
     }
   }
 }
 
-impl Lex {
+impl<R: Read> Lex<R> {
   fn read_char(&mut self) -> char {
-    let mut buffer = [0];
-    if self.input.read(&mut buffer).unwrap() == 1 {
-      buffer[0] as char
-    } else {
-      '\0'
+    match self.input.next() {
+      Some(Ok(c)) => c as char,
+      Some(_) => panic!("lex read error"),
+      None => '\0',
     }
   }
 
-  fn move_back(&mut self) {
-    self.input.seek(SeekFrom::Current(-1)).unwrap();
+  fn peek_char(&mut self) -> char {
+    match self.input.peek() {
+      Some(Ok(next)) => *next as char,
+      Some(_) => panic!("lex read error"),
+      None => '\0',
+    }
+  }
+
+  fn next_char(&mut self) -> Option<char> {
+    self.input.next().map(|r| r.unwrap().into())
   }
 }
 
-impl TokenIterator for Lex {
+impl<R: Read> TokenIterator for Lex<R> {
   type Output = Token;
 
   /// Take out the next token. (with updating `ahead`)
@@ -181,32 +188,27 @@ impl TokenIterator for Lex {
         Token::Less,
       ),
       '-' => {
-        if self.read_char() == '-' {
+        if self.peek_char() == '-' {
+          self.next_char();
           self.lex_comment();
           self.do_next()
         } else {
-          self.move_back();
           Token::Sub
         }
       }
       '\'' | '"' => self.lex_string(c),
-      '.' => match self.read_char() {
+      '.' => match self.peek_char() {
         '.' => {
-          if self.read_char() == '.' {
+          self.next_char();
+          if self.peek_char() == '.' {
+            self.next_char();
             Token::Dots
           } else {
-            self.move_back();
             Token::Concat
           }
         }
-        '0'..='9' => {
-          self.move_back();
-          self.lex_number_fraction(0)
-        }
-        _ => {
-          self.move_back();
-          Token::Dot
-        }
+        '0'..='9' => self.lex_number_fraction(0),
+        _ => Token::Dot,
       },
       '0'..='9' => self.lex_number(c),
       'A'..='Z' | 'a'..='z' | '_' => self.lex_name(c),

@@ -9,7 +9,7 @@
 //! But in rua, we use a `stack-based` vm instead.
 
 use crate::{bytecode::ByteCode, parse::ParseProto, utils::New, value::Value};
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Read};
 
 pub mod lib;
 
@@ -36,7 +36,7 @@ impl ExeState {
 }
 
 impl ExeState {
-  pub fn execute(&mut self, proto: &ParseProto) {
+  pub fn execute<R: Read>(&mut self, proto: &ParseProto<R>) {
     for code in proto.bytecodes.iter() {
       match *code {
         ByteCode::GetGlobal(dst, name) => {

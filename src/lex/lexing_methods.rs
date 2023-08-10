@@ -1,36 +1,34 @@
 use super::*;
 
-impl Lex {
+impl<R: Read> Lex<R> {
   pub(super) fn check_ahead(
     &mut self,
     ahead_cases: Vec<char>,
     candidates: Vec<Token>,
     failed: Token,
   ) -> Token {
-    let ch = self.read_char();
+    let ch = self.peek_char();
     for (ahead, candidate) in ahead_cases.into_iter().zip(candidates) {
       if ch == ahead {
+        self.next_char();
         return candidate;
       }
     }
-    self.move_back();
     failed
   }
 }
 
-impl Lex {
+impl<R: Read> Lex<R> {
   pub(super) fn lex_name(&mut self, first: char) -> Token {
     let mut name = String::new();
     name.push(first);
     loop {
-      match self.read_char() {
-        '\0' => break,
-        '_' => name.push('_'),
-        c if c.is_alphanumeric() => name.push(c),
-        _ => {
-          self.move_back();
-          break;
-        }
+      let c = self.peek_char();
+      if c.is_alphanumeric() || c == '_' {
+        self.next_char();
+        name.push(c);
+      } else {
+        break;
       }
     }
     // check => if it's keyword
@@ -92,62 +90,81 @@ impl Lex {
   fn lex_number_in_radix(&mut self, radix: u32) -> Token {
     let mut scanned = 0;
     loop {
-      let c = self.read_char();
+      let c = self.peek_char();
       let curr = char::to_digit(c, radix);
       match curr {
-        Some(curr) => scanned = scanned * radix as i64 + curr as i64,
+        Some(curr) => {
+          self.next_char();
+          scanned = scanned * radix as i64 + curr as i64;
+        }
         None => match c {
-          '.' => return self.lex_number_fraction_in_radix(scanned, radix),
+          '.' => {
+            self.next_char();
+            return self.lex_number_fraction_in_radix(scanned, radix);
+          }
           _ => {
-            self.move_back();
             break;
           }
         },
       }
     }
     // check following
-    let following = self.read_char();
+    let following = self.peek_char();
     if following.is_alphabetic() || following == '.' {
       panic!("malformed number");
     }
-    self.move_back();
     // Ok
     Token::Integer(scanned)
   }
 
   pub(super) fn lex_number(&mut self, first: char) -> Token {
     if first == '0' {
-      let second = self.read_char();
+      let second = self.peek_char();
       match second {
-        'x' | 'X' => return self.lex_number_in_radix(16),
-        'b' | 'B' => return self.lex_number_in_radix(2),
-        'o' | 'O' => return self.lex_number_in_radix(8),
+        'x' | 'X' => {
+          self.next_char();
+          return self.lex_number_in_radix(16);
+        }
+        'b' | 'B' => {
+          self.next_char();
+          return self.lex_number_in_radix(2);
+        }
+        'o' | 'O' => {
+          self.next_char();
+          return self.lex_number_in_radix(8);
+        }
         _ => {}
       }
-      self.move_back();
     }
     let mut scanned = char::to_digit(first, 10).unwrap() as i64;
     loop {
-      let c = self.read_char();
+      let c = self.peek_char();
       let curr = char::to_digit(c, 10);
       match curr {
-        Some(curr) => scanned = scanned * 10 + curr as i64,
+        Some(curr) => {
+          self.next_char();
+          scanned = scanned * 10 + curr as i64
+        }
         None => match c {
-          '.' => return self.lex_number_fraction(scanned),
-          'e' | 'E' => return self.lex_number_exponent(scanned as f64),
+          '.' => {
+            self.next_char();
+            return self.lex_number_fraction(scanned);
+          }
+          'e' | 'E' => {
+            self.next_char();
+            return self.lex_number_exponent(scanned as f64);
+          }
           _ => {
-            self.move_back();
             break;
           }
         },
       }
     }
     // check following
-    let following = self.read_char();
+    let following = self.peek_char();
     if following.is_alphabetic() || following == '.' {
       panic!("malformed number");
     }
-    self.move_back();
     // Ok
     Token::Integer(scanned)
   }
@@ -162,12 +179,12 @@ impl Lex {
       _ => scanned = char::to_digit(first, 10).unwrap() as i64,
     }
     loop {
-      let c = self.read_char();
+      let c = self.peek_char();
       let curr = char::to_digit(c, 10);
       if let Some(curr) = curr {
+        self.next_char();
         scanned = scanned * 10 + curr as i64
       } else {
-        self.move_back();
         break;
       }
     }
@@ -178,13 +195,13 @@ impl Lex {
     let mut scanned = 0;
     let mut bits = 1.0;
     loop {
-      let c = self.read_char();
+      let c = self.peek_char();
       let curr = char::to_digit(c, radix);
       if let Some(curr) = curr {
+        self.next_char();
         scanned = scanned * radix as i64 + curr as i64;
         bits *= radix as f64;
       } else {
-        self.move_back();
         break;
       }
     }
@@ -195,16 +212,19 @@ impl Lex {
     let mut scanned = 0;
     let mut bits = 1.0;
     loop {
-      let c = self.read_char();
+      let c = self.peek_char();
       match char::to_digit(c, 10) {
         Some(curr) => {
+          self.next_char();
           scanned = scanned * 10 + curr as i64;
           bits *= 10.0;
         }
         None => match c {
-          'e' | 'E' => return self.lex_number_exponent(original as f64 + scanned as f64 / bits),
+          'e' | 'E' => {
+            self.next_char();
+            return self.lex_number_exponent(original as f64 + scanned as f64 / bits);
+          }
           _ => {
-            self.move_back();
             break;
           }
         },

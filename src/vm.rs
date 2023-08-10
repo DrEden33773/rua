@@ -9,15 +9,11 @@
 //! But in rua, we use a `stack-based` vm instead.
 
 use crate::{bytecode::ByteCode, parse::ParseProto, utils::New, value::Value};
-use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
 pub mod lib;
 
 use self::lib::io::lib_print;
-
-static GLOBALS_VEC: Lazy<Vec<(String, Value)>> =
-  Lazy::new(|| vec![("print".into(), Value::Function(lib_print))]);
 
 pub struct ExeState {
   /// A hashtable of global variables
@@ -112,8 +108,9 @@ impl ExeState {
 impl New for ExeState {
   type Output = Self;
   fn new() -> Self::Output {
+    let globals_vec = vec![("print", Value::Function(lib_print))];
     let mut globals = HashMap::new();
-    for (k, v) in GLOBALS_VEC.iter() {
+    for (k, v) in globals_vec {
       globals.insert(k.to_owned(), v.to_owned());
     }
     Self {

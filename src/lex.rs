@@ -41,9 +41,6 @@ pub enum Token {
   True,
   Until,
   While,
-  /* TODO: reserved identifiers */
-  Async,
-  Await,
   /* symbols */
   Add,       // +
   Sub,       // -

@@ -4,6 +4,7 @@
 
 use crate::{table::Table, vm::ExeState};
 use core::fmt;
+use gc::Gc;
 use std::{
   cell::RefCell,
   fmt::{Debug, Display},
@@ -28,7 +29,7 @@ fn slice_to_short_mid_str(v: &[u8]) -> Option<Value> {
     l if l <= MID_STR_MAX => {
       let mut buf = [0; MID_STR_MAX];
       buf[..len].copy_from_slice(v);
-      Some(Value::MidStr(Rc::new((l as u8, buf))))
+      Some(Value::MidStr(Gc::new((l as u8, buf))))
     }
     _ => None,
   }
@@ -41,8 +42,8 @@ pub enum Value {
   Integer(i64),
   Float(f64),
   ShortStr(u8, [u8; SHORT_STR_MAX]),
-  MidStr(Rc<(u8, [u8; MID_STR_MAX])>),
-  LongStr(Rc<Vec<u8>>),
+  MidStr(Gc<(u8, [u8; MID_STR_MAX])>),
+  LongStr(Gc<Vec<u8>>),
   Function(fn(&mut ExeState) -> i32),
   Table(Rc<RefCell<Table>>),
 }
@@ -68,7 +69,7 @@ impl Hash for Value {
 
 impl From<&[u8]> for Value {
   fn from(v: &[u8]) -> Self {
-    slice_to_short_mid_str(v).unwrap_or(Value::LongStr(Rc::new(v.to_vec())))
+    slice_to_short_mid_str(v).unwrap_or(Value::LongStr(Gc::new(v.to_vec())))
   }
 }
 impl From<&str> for Value {
@@ -78,7 +79,7 @@ impl From<&str> for Value {
 }
 impl From<Vec<u8>> for Value {
   fn from(v: Vec<u8>) -> Self {
-    slice_to_short_mid_str(&v).unwrap_or(Value::LongStr(Rc::new(v.to_vec())))
+    slice_to_short_mid_str(&v).unwrap_or(Value::LongStr(Gc::new(v.to_vec())))
   }
 }
 impl From<String> for Value {

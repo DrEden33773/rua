@@ -1,12 +1,11 @@
-//! # VM (stack-based)
+//! # VM
 //!
 //! The virtual machine implementation of rua.
 //!
 //! ## Note
 //!
-//! Original C-lua implementation adapt a `register-based` vm.
-//!
-//! But in rua, we use a `stack-based` vm instead.
+//! The virtual machine do store values on a `stack-liked` vector, but
+//! it's bytecode is register-based.
 
 use crate::{bytecode::ByteCode, parse::ParseProto, table::Table, utils::New, value::Value};
 use std::{cell::RefCell, collections::HashMap, io::Read, rc::Rc};
@@ -106,7 +105,7 @@ impl ExeState {
         }
         ByteCode::SetList(table, n) => {
           let value_index = table as usize + 1;
-          if let Value::Table(table) = self.stack[table as usize].clone() {
+          if let Value::Table(table) = self.stack[table as usize].to_owned() {
             // `drain + extend` could be much better than `for + push`
             let values = self.stack.drain(value_index..value_index + n as usize);
             table.borrow_mut().array.extend(values);

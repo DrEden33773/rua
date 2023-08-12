@@ -64,7 +64,6 @@ impl<R: Read> Lex<R> {
       }
     }
     // check => if it's keyword
-    // TODO: add support of `flexible reserved identifier (such as async/await)`
     KEYWORDS_MAP
       .get(&name[..])
       .cloned()
@@ -122,7 +121,7 @@ impl<R: Read> Lex<R> {
   pub(super) fn lex_comment(&mut self) {
     /* `--` has been read */
     match self.next_byte() {
-      Some(b'[') => unimplemented!("multiline/long comment"),
+      Some(b'[') => self.lex_long_comment(),
       None => (),
       Some(_) => loop {
         /* single line comment (end at `\n` or `\0`) */
@@ -132,6 +131,24 @@ impl<R: Read> Lex<R> {
           }
         }
       },
+    }
+  }
+
+  fn lex_long_comment(&mut self) {
+    /* `--[` has been read */
+    let mut level = 0;
+    loop {
+      match self.next_byte() {
+        Some(b'[') => level += 1,
+        Some(b']') => {
+          if level == 0 {
+            return;
+          }
+          level -= 1;
+        }
+        None => panic!("unfinished long comment"),
+        _ => (),
+      }
     }
   }
 

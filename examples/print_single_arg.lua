@@ -1,4 +1,4 @@
--- being
+-- begin
 print(nil)
 print(false)
 print(123)
